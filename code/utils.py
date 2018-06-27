@@ -57,8 +57,7 @@ def parse_survey_responses():
     happy to construct the question_answer dictionary manually. This example is for the PIRC study.
 
     """
-
-
+    
     question_answer_dictionary = {"What best describes your relationship to the new sexual \
     partners reported in the last week? (check all that apply):" : ["Unknown person - someone \
     you have never met before", "One-time partner - someone you knew previously and had sex \
