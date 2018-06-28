@@ -1,4 +1,5 @@
 import glob
+import os
 
 
 def check_file_size(data_dir, dates, subjects, surveys, data_stream_indices):
@@ -69,19 +70,19 @@ def parse_survey_responses():
 
     line_count = 0
     for line in open(datafile):
-    if line_count > 0:
-        line = line.rstrip().split(",")
-        question = line[2]
-        answer = line[4]
-        output = []
-        if question in question_answer_dictionary:
-            for (ind, option) in enumerate(question_answer_dictionary[question]):
-                if option in answer:
-                    output.append(ind)
-        if output:
-            print(question, output)
-        else:
-            print(question, answer)
+        if line_count > 0:
+            line = line.rstrip().split(",")
+            question = line[2]
+            answer = line[4]
+            output = []
+            if question in question_answer_dictionary:
+                for (ind, option) in enumerate(question_answer_dictionary[question]):
+                    if option in answer:
+                        output.append(ind)
+            if output:
+                print(question, output)
+            else:
+                print(question, answer)
         line_count += 1
 
 
