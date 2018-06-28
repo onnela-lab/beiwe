@@ -12,7 +12,7 @@ def check_file_size(data_dir, dates, subjects, surveys, data_stream_indices):
         dates (list): List of dates to check
         subjects (list): List of Beiwe subject IDs to check
         surveys (list): List of Beiwe survey IDs to check
-        data_stream_indices (list): List of integers corresponding to different data types to check
+        data_stream_indices (list): List of integers corresponding to data types to check
 
     """
 
