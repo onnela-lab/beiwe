@@ -10,32 +10,25 @@ except:
     print("Failed importing nano. This needs to be run in a pipenv environment to work.")
 
 
-def download_beiwe_data(study_no=2, output_folder= "/tmp/beiwe-data", time_end=None, time_start=None):
+def download_beiwe_data(study_id, data_streams, output_folder, time_end=None, time_start=None):
     """
     Download Beiwe data to a local directory. If time_start is not specified, extraction will
     proceed one week from time_end. If time_end is not specified, today's date is use as default.
 
     Args:
-        study_no (int): Study number 1-3
+        study_no (str): Beiwe study ID, e.g. "5a3a856203d3c42e31329970"
+        data_streams (list): Names of data streams as strings to download
         output_folder (str): Downloaded data will be stored here
         time_end (str): End date of extraction in the format YYYY-MM-DD
         time_start (str): Start date of extraction in the format YYYY-MM-DD
 
     Returns:
-        active_users (list): List of users for whom directories were returned
+        active_users (list): List of Beiwe user IDs for whom data directories were returned
     """
 
     # specify keyring and data streams
     Keyring = mano.keyring("beiwe.onnela")
-    data_streams = ["power_state", "survey_answers"]
     logging.basicConfig(level=logging.INFO)
-
-    # choose study
-    studies = {1: ("UCSD_Little_UNI_HIV_Pos", "5a3a856203d3c42e31329970"), \
-               2: ("UCSD_Little_UNI_HIV_Neg", "5a3a85db03d3c42e3132998a"), \
-               3: ("UCSD_Little_RDS Study", "5a3a862503d3c42e3217bb90")}
-    (study_name, study_id) = studies[study_no]
-    print("  Processing study %s (study ID %s)." % (study_name, study_id))
 
     # specify time_end
     if time_end is None:
@@ -69,7 +62,7 @@ def download_beiwe_data(study_no=2, output_folder= "/tmp/beiwe-data", time_end=N
     return active_users
 
 
-def check_file_size(data_dir, dates, subjects, surveys, data_stream_indices):
+def check_file_size(data_dir, dates, subjects, surveys, data_streams):
     """
     Function to loop over all specified dates, subjects, data streams and surveys.
     Prints out the file sizes for each.
@@ -79,14 +72,13 @@ def check_file_size(data_dir, dates, subjects, surveys, data_stream_indices):
         dates (list): List of dates to check
         subjects (list): List of Beiwe subject IDs to check
         surveys (list): List of Beiwe survey IDs to check
-        data_stream_indices (list): List of integers corresponding to data types to check
+        data_streams (list): List of strings corresponding to data different streams:
+            "accelerometer", "bluetooth", "calls", "gps", "identifiers", 
+            "app_log", "power_state", "survey_answers", "survey_timings", 
+            "texts", "audio_recordings", "wifi", "proximity", "gyro", 
+            "magnetometer", "devicemotion", "reachability", "ios_log", "image_survey"
 
     """
-
-    data_streams = ["accelerometer", "bluetooth", "calls", "gps", "identifiers", \
-                "app_log", "power_state", "survey_answers", "survey_timings", \
-                "texts", "audio_recordings", "wifi", "proximity", "gyro", \
-                "magnetometer", "devicemotion", "reachability", "ios_log", "image_survey"]
 
     for date in dates:
         print("Date:", date)
@@ -95,13 +87,13 @@ def check_file_size(data_dir, dates, subjects, surveys, data_stream_indices):
             print("Subject:", subject)
 
             # passive data files
-            for data_stream_index in data_stream_indices:
-                path = data_dir + subject + "/" + data_streams[data_stream_index] + "/" + date + "*"
+            for data_stream in data_streams:
+                path = data_dir + subject + "/" + data_stream + "/" + date + "*"
                 files = glob.glob(path)
                 total_size = 0
                 for file in files:
                     total_size += os.path.getsize(file)
-                print("  %s total file size is %d bytes." % (data_streams[data_stream_index], total_size))
+                print("  %s total file size is %d bytes." % (data_stream, total_size))
 
             # survey files
             for survey in surveys:
