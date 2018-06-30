@@ -22,7 +22,7 @@ def download_beiwe_data(study_no=2, output_folder= "/tmp/beiwe-data", time_end=N
         time_start (str): Start date of extraction in the format YYYY-MM-DD
 
     Returns:
-
+        active_users (list): List of users for whom directories were returned
     """
 
     # specify keyring and data streams
@@ -66,6 +66,7 @@ def download_beiwe_data(study_no=2, output_folder= "/tmp/beiwe-data", time_end=N
     print("\n  Found data for the following users:")
     for user_id in active_users:
         print(" ", user_id)
+    return active_users
 
 
 def check_file_size(data_dir, dates, subjects, surveys, data_stream_indices):
