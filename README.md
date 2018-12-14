@@ -9,7 +9,7 @@ This is being updated but you can look [here](https://github.com/onnela-lab/beiw
 
 ## Sample configuration files
 These are example Beiwe configuration files for passive data collection:
-* Default passive data collection: [JSON](https://github.com/onnela-lab/beiwe/tree/master/config)
+* Default passive data collection: [JSON](https://github.com/onnela-lab/beiwe/tree/master/config/default_passive.json)
 
 ## License
 This repository is published under the 3-clause BSD 3-clause, see [here](LICENSE.md).
