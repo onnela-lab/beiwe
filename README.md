@@ -7,6 +7,9 @@ This repository contains documentation and code examples that are applicable to 
 ## Documentation
 This is being updated but you can look [here](https://github.com/onnela-lab/beiwe/wiki) and [here](https://github.com/onnela-lab/Beiwe-Analysis/wiki/Documentation).
 
+## Sample configuration files
+
+
 ## License
 This repository is published under the 3-clause BSD 3-clause, see [here](LICENSE.md).
 
