@@ -9,8 +9,10 @@ import sys
 import cryptease
 import mano
 import pandas as pd
+import numpy as np
 import importlib
 import matplotlib.pyplot as plt
+from mano.sync import BACKFILL_START_DATE
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +21,6 @@ DATA_STREAMS_WITH_FOREST_TREES = [
     "gps", "accelerometer", "calls", "texts", "survey_answers",
     "survey_timings", "audio_recordings"
 ]
-
 
 KEYRING_FIELDS = ["URL", "USERNAME", "PASSWORD", "ACCESS_KEY", "SECRET_KEY",
                   "TABLEAU_ACCESS_KEY", "TABLEAU_SECRET_KEY"]
@@ -327,7 +328,7 @@ def plot_heatmap(input_summaries_df: pd.DataFrame,
                  overlay_surveys: bool,
                  display_plots: bool,
                  max_ids_per_plot: int,
-                 include_y_labels: bool = True):
+                 include_y_labels: bool):
     """Create a heatmap for a given data stream
     Args:
         input_summaries_df: A preprocessed input_summaries_df created during
@@ -438,6 +439,7 @@ def plot_heatmap(input_summaries_df: pd.DataFrame,
     df_to_plot.drop("sums", axis=1, inplace=True)
     # Now, we need to automatically space X axis ticks.
     num_x_ticks = 10
+    num_y_ticks = 5
     if df_to_plot.shape[1] <= num_x_ticks:
         x_axis = df_to_plot.columns
     else:
@@ -445,19 +447,19 @@ def plot_heatmap(input_summaries_df: pd.DataFrame,
         # spots we want x ticks
         spacing_between_ticks = df_to_plot.shape[1] / (num_x_ticks - 1)
         for i in range((num_x_ticks - 1)):
-            index_to_show = round(i * spacing_between_ticks)
+            index_to_show = np.min([round(i * spacing_between_ticks), len(x_axis) - 1])
             x_axis[index_to_show] = df_to_plot.columns[index_to_show]
         x_axis[-1] = df_to_plot.columns[-1]
     if include_y_labels:
         y_axis = df_to_plot.index
     else:
         y_axis = [""] * df_to_plot.shape[0]  # nothing on everywhere except the
-        # spots we want x ticks
-        spacing_between_ticks = df_to_plot.shape[0] / (num_x_ticks - 1)
-        for i in range((num_x_ticks - 1)):
-            index_to_show = round(i * spacing_between_ticks)
+        # spots we want y ticks
+        spacing_between_ticks = df_to_plot.shape[0] / (num_y_ticks - 1)
+        for i in range((num_y_ticks - 1)):
+            index_to_show = np.min([round(i * spacing_between_ticks), len(y_axis) - 1])
             y_axis[index_to_show] = index_to_show + 1
-        y_axis[-1] = df_to_plot.shape[0] + 1
+        y_axis[-1] = df_to_plot.shape[0]
 
     if binary_heatmap:
         plot_type = "binary"
@@ -502,10 +504,11 @@ def plot_heatmap(input_summaries_df: pd.DataFrame,
 def create_save_plot(df_to_plot, x_axis, survey_x, survey_y,
                      xlab_addition, plot_study_time,display_plots,
                      save_path, plot_title, include_y_labels, y_axis):
+    """Helper function used to create and save a plot"""
     if include_y_labels:
         plot_height = int(np.round(df_to_plot.shape[0] / 2)) #we need space for each label
     else:
-        plot_height = 10 #same as width
+        plot_height = 6 #for easier viewing on laptops
 
     plot_width = 10
 
@@ -531,6 +534,9 @@ def create_save_plot(df_to_plot, x_axis, survey_x, survey_y,
     except ValueError:
         logger.error("Plot is too big. Please retry doing the plot with"
                      " fewer Beiwe IDs")
+    except np.linalg.LinAlgError:
+        logger.error("Unable to create plot for %s because there's not enough data", plot_title)
+        return
     if save_path is not None:
         plt.savefig(save_path, pad_inches=1, facecolor="white",
                     edgecolor="white")
@@ -546,8 +552,8 @@ def data_volume_plots(
         end_date: str = None, max_study_days: int = None,
         binary_heatmap: bool = True, plot_study_time: bool = True,
         max_ids_per_plot: int = 1000,
-        overlay_surveys: bool = False, study_id: str = None,
-        keyring_password: str = None
+        overlay_surveys: bool = False,
+        include_y_labels: bool = True
 ):
     """Create data volume summary plots for a study
 
@@ -588,12 +594,7 @@ def data_volume_plots(
         max_ids_per_plot: Maximum number of Beiwe IDs on a plot. If
             summaries_df has more than this many Beiwe IDs, it will break
             the plot up
-        study_id: 24-character study ID found at the top right corner of the
-            study page
-        keyring_filepath: Filepath to a keyring file written by write_keyring()
-        keyring_password: Password to decrypt the file at keyring_filepath if
-            the file is encrypted
-
+        include_y_labels: whether to include Beiwe IDs as y labels in the plot
     """
 
     summaries_df = pd.read_csv(data_summaries_path)
@@ -643,6 +644,34 @@ def data_volume_plots(
     for stream_to_plot in data_streams_to_plot:
         plot_heatmap(summaries_df, stream_to_plot, output_dir,
                      plot_study_time, binary_heatmap, overlay_surveys,
-                     display_plots, max_ids_per_plot)
+                     display_plots, max_ids_per_plot, include_y_labels)
+
+
+def get_num_users(summaries_df=None, summaries_path=None, data_streams=None):
+    """Get the number of users that has at least one day with a data stream
+     as a dataframe
+     Args:
+         summaries_df: Dataframe of data volume summaries
+         summaries_path: path to csv of data volume summaries
+         data_streams: list of data streams to get summaries for. If not
+            specified, only data streams with forest trees will have statistics
+            listed.
+    Returns:
+        Dataframe with a row for each thing in data_streams and a column saying
+        how many people have non-zero days.
+     """
+    if summaries_df is None and summaries_path is not None:
+        summaries_df = pd.read_csv(summaries_path)
+    else:
+        logger.error("Summaries dataframe not included")
+    if data_streams is None:
+        data_streams = DATA_STREAMS_WITH_FOREST_TREES
+    num_users_list = []
+    summaries_df = summaries_df.fillna(0)
+    for stream in data_streams:
+        col_name = "beiwe_" + stream + "_bytes"
+        num_users_list.append(summaries_df.loc[summaries_df[col_name] > 0, "participant_id"].nunique())
+
+    return pd.DataFrame({"Data Type": data_streams, "Number of Users": num_users_list})
 
 
