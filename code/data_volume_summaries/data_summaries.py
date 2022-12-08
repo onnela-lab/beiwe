@@ -190,11 +190,19 @@ def get_data_summaries(
     Args:
         study_id: 24-character study ID found at the top right corner of the
             study page
+        output_file_path: Filepath to write an output file to. If this is None,
+             no file is written.
+        keyring: Keyring read by read_keyring()
         keyring_filepath: Filepath to a keyring file written by write_keyring()
         keyring_password: Password to decrypt the file at keyring_filepath if 
             the file is encrypted
-        output_file_path: Filepath to write an output file to. If this is None,
-         no file is written.
+        time_granularity: The time granularity of summaries, "daily" or "hourly"
+        participant_ids: A list of participants you want summaries for. Enter None to pull summaries for everyone
+        start_date: The first date you want summaries for, in YYYY-MM-DD format. Enter None to pull all available summaries
+        end_date: The last date you want summaries for, in YYYY-MM-DD format. Enter None to pull all available summaries
+        fields: The list of summary statistics you would like to pull. Enter None to pull all available summaries. A list of available summary statistics is at https://github.com/onnela-lab/beiwe-backend/wiki/Tableau-API. 
+        limit: An integer corresponding to the number of rows you want to pull (for example, put 100 to pull the first 100 rows). Enter None to pull all available rows.
+        
 
     Returns:
         Dataframe with Beiwe summary statistics pulled from the server
