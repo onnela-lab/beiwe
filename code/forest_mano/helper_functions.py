@@ -2,6 +2,8 @@ from pathlib import Path
 from itertools import islice
 import numpy as np
 import pandas as pd
+from pandas import json_normalize
+import orjson
 import os
 import sys
 from datetime import datetime
@@ -185,3 +187,82 @@ def download_data(keyring,  study_id, download_folder, users = [], time_start = 
                 print(f"Too many failures; skipping user {u}")
         if zf is None:
             print(f'No data for {u}; nothing written')
+
+def call_api(endpoint, study_id, access_key, secret_key):
+    '''
+    Calls a specific Beiwe API to gather different pieces of information about a study. 
+    
+    This function calls one of three possible API endpoints: get-summary-statistics/v1, {FINISH} registration info and study settings? and the
+    passes along the json response as a pandas dataframe
+     
+    Args: 
+        endpoint: a key for which endpoint should be accessed {}
+    
+        study_id(str): The id of a study
+        
+        access_key: API access key from the keyring file
+
+        secret_key: API secret key from the keyring file 
+        
+    '''
+    # make a post request to the get-participant-upload-history/v1 endpoint, including the api key,
+    # secret key, and participant_id as post parameters.
+    t_start = datetime.now()
+    print("Starting request at", t_start, flush=True)
+    response = requests.post(
+        endpoint,
+        
+        # refine your parameters here
+        data={
+            "access_key": access_key,
+            "secret_key": secret_key,
+            
+            # several endpoints take a participant id, 
+            "study_id": study_id,
+            
+            # `omit_keys` is an option on some endpoints, it causes the return data to be potentially
+            # much smaller and faster. Format of data will replace dictions with lists of values, order
+            # will be retained. It takes a string, "true" or "false".
+            # "omit_keys": "true",
+            "data_format": "json"
+            # etc.
+            
+        },
+        allow_redirects=False,
+    )
+    t_end = datetime.now()
+    print("Request completed at", t_end.isoformat(), "duration:", (t_end - t_start).total_seconds(), "seconds")
+    
+    status_code = response.status_code
+    raw_output = response.content
+    
+    # the rest is just some sanity checking to make sure the your request worked and give you basic
+    # feedback.
+    print("http status code:", response.status_code)
+    
+    assert status_code != 400, \
+        "400 usually means you are missing a required parameter, or something critical isn't passing some checks.\n" \
+        "Check your access key and secret key, if there is a study id make sure it is 24 characters long."
+    
+    assert status_code != 403, \
+        "Permissions Error, you are not authenticated to view data on this study."
+    
+    assert status_code != 404, \
+        "404 means that the entity you have specified does not exist. Check details like study_id, patient_id, etc."
+    
+    assert response.status_code != 301, \
+        "Encountered HTTP redirect, you may have forgotten the s in https. first 100 bytes of response:\n" \
+        f"{raw_output[:100]}"
+    
+    assert response.content != b"", "No data was returned by the server..."
+    
+    print("Testing whether it is valid json...")
+    try:
+        json_response = orjson.loads(response.content)
+        print("JSON successfully loadded into variable `json_response`")
+    except orjson.JSONDecodeError:
+        print("Not valid JSON - which may or may not be an issue! Here is the raw output of the first 100 bytes:")
+        print(raw_output[:100])
+        json_response = None
+    
+    return json_normalize(json_response)
