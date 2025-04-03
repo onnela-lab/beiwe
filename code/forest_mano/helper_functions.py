@@ -7,7 +7,8 @@ import orjson
 import os
 import sys
 from datetime import datetime
-from datetime import timedelta  
+from datetime import timedelta
+import pytz
 import math
 from functools import reduce
 from datetime import datetime
@@ -99,9 +100,19 @@ def concatenate_folder(dir_path: Path, output_filename: str):
         print("Concatenated folder " + str(dir_path) + " to " + str(output_filename))
     else:
         print("No input data found in folder " + str(dir_path))
-        
 
-def download_data(keyring,  study_id, download_folder, users = [], time_start = "2008-01-01", 
+#Convert local time to UTC helper function        
+def convert_to_utc_and_format(date_str, time_str, timezone_str):
+    local_time = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S")
+    local_timezone = pytz.timezone(timezone_str)
+    local_time = local_timezone.localize(local_time)
+    utc_time = local_time.astimezone(pytz.utc)
+    utc_time_str = utc_time.strftime("%Y-%m-%dT%H:%M:%S")
+    
+    return utc_time_str
+
+
+def download_data(keyring,  study_id, download_folder, tz_str, users = [], time_start = "2008-01-01", 
                       time_end = None, data_streams = None):
     '''
     Downloads all data for specified users, time frame, and data streams. 
@@ -118,12 +129,14 @@ def download_data(keyring,  study_id, download_folder, users = [], time_start = 
         study_id(str): The id of a study
         
         download_folder(str): path to a folder to download data
+
+        tz_str(str): The timezone of the study
         
         time_start(str): The initial date to download data (Formatted in YYYY-MM-DD). Default is 2008-01-01, which is 
             before any Beiwe data existed.
         
         time_end(str): The date to end downloads. The default is today at midnight.
-        
+
         data_streams(iterable): A list of all data streams to download. The default (None) is all possible data streams. 
         
     '''
@@ -139,8 +152,18 @@ def download_data(keyring,  study_id, download_folder, users = [], time_start = 
     if not os.path.isdir(download_folder):
         os.mkdir(download_folder)
     
+    if tz_str == "":
+        print("Error: Timezone is blank")
+        return
+
+    local_timezone = pytz.timezone(tz_str)
+    
     if time_end is None:
         time_end = datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
+    else:
+        time_end = convert_to_utc_and_format(time_end, "23:59:00", tz_str)
+    
+    time_start = convert_to_utc_and_format(time_start, "00:00:00", tz_str)
         
     if users == []:
         print('Obtaining list of users...')
