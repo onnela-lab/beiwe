@@ -155,8 +155,6 @@ def download_data(keyring, study_id, download_folder, tz_str, users = [], time_s
         print("Error: Timezone is blank")
         return
 
-    local_timezone = pytz.timezone(tz_str)
-
     if time_end is None:
         time_end = datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
     else:
