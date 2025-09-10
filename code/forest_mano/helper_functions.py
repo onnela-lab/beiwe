@@ -151,7 +151,7 @@ def download_data(keyring, study_id, download_folder, tz_str, users = [], time_s
     if not os.path.isdir(download_folder):
         os.mkdir(download_folder)
     
-     if tz_str == "":
+    if tz_str == "":
         print("Error: Timezone is blank")
         return
 
