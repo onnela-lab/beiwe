@@ -11,7 +11,6 @@ from datetime import timedelta
 import pytz
 import math
 from functools import reduce
-from datetime import datetime
 import mano
 import mano.sync as msync
 import requests
@@ -111,7 +110,7 @@ def convert_to_utc_and_format(date_str, time_str, timezone_str):
     
     return utc_time_str
 
-def download_data(keyring, study_id, download_folder, tz_str, users = [], time_start = "2008-01-01", 
+def download_data(keyring, study_id, download_folder, tz_str: str = "UTC", users = [], time_start = "2008-01-01", 
                       time_end = None, data_streams = None):
     '''
     Downloads all data for specified users, time frame, and data streams. 
@@ -129,7 +128,7 @@ def download_data(keyring, study_id, download_folder, tz_str, users = [], time_s
         
         download_folder(str): path to a folder to download data
 
-        tz_str(str): The study timezone
+        tz_str(str): The study timezone, default to UTC
 
         time_start(str): The initial date to download data (Formatted in YYYY-MM-DD). Default is 2008-01-01, which is 
             before any Beiwe data existed.
@@ -151,12 +150,15 @@ def download_data(keyring, study_id, download_folder, tz_str, users = [], time_s
     if not os.path.isdir(download_folder):
         os.mkdir(download_folder)
     
-    if tz_str == "":
-        print("Error: Timezone is blank")
-        return
+    if not tz_str:
+        tz_str = "UTC"
+
+    # Convert start/end using the study timezone -> UTC
+    local_tz = pytz.timezone(tz_str)
 
     if time_end is None:
-        time_end = datetime.today().strftime("%Y-%m-%d")+"T23:59:00"
+        today_local_date_str = datetime.now(local_tz).date().strftime("%Y-%m-%d")
+        time_end = convert_to_utc_and_format(today_local_date_str, "23:59:00", tz_str)
     else:
         time_end = convert_to_utc_and_format(time_end, "23:59:00", tz_str)
 
